@@ -11,4 +11,4 @@ license: gpl-3.0
 short_description: A model specialized for generating drug-like structures.
 ---
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+Check out the configuration interface at https://huggingface.co/spaces/alimotahharynia/GPT-2-Drug-Generator
