@@ -156,18 +156,17 @@ if __name__ == "__main__":
 
     with gr.Blocks(theme=gr.themes.Soft(primary_hue="indigo", secondary_hue="teal")) as iface:
         custom_css = """
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #fafafa;
-            color: #333;
-            font-size: 16px;
+        html, body {
+            background-color: #111111 !important;  /* Dark gray background */
+            color: #ffffff !important;  /* White text */
+            font-family: 'Roboto', sans-serif !important;
         }
 
         #app-title {
             text-align: center;
             font-size: 36px;
             font-weight: 700;
-            color: #2c3e50;
+            color: #ffffff !important;  /* White title for dark background */
             margin-bottom: 20px;
         }
 
@@ -175,51 +174,52 @@ if __name__ == "__main__":
             font-size: 18px;
             margin-bottom: 40px;
             text-align: center;
-            color: #555;
+            color: #dddddd !important;  /* Lighter text color for description */
         }
 
         .gr-button {
             padding: 12px 24px;
             font-weight: bold;
-            background-color: #007bff;
-            color: white;
+            background-color: #0066cc !important;  /* Muted blue button */
+            color: white !important;
             border-radius: 8px;
             border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
             transition: all 0.3s ease;
         }
 
         .gr-button:hover {
-            background-color: #0056b3;
+            background-color: #005cbf !important;  /* Darker blue on hover */
             transform: translateY(-2px);
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
         }
 
         .gr-input:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+            border-color: #0066cc !important;
+            box-shadow: 0 0 8px rgba(0, 102, 204, 0.3) !important;
         }
 
         .gr-output {
-            background-color: #ffffff;
+            background-color: #444444 !important;  /* Lighter gray background for outputs */
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            color: #ffffff !important;  /* White text for outputs */
         }
 
         .error-message {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24 !important;
             padding: 15px;
             border-radius: 8px;
         }
 
         .success-message {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724 !important;
             padding: 15px;
             border-radius: 8px;
         }
