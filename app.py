@@ -49,6 +49,12 @@ def load_uniprot_dataset(dataset_name, dataset_key):
         logging.error(f"Error loading dataset: {e}")
         raise RuntimeError(f"Failed to load dataset: {e}")
 
+def save_smiles_to_file(results):
+    file_path = os.path.join(tempfile.gettempdir(), "generated_smiles.json")
+    with open(file_path, "w") as f:
+        json.dump(results, f, indent=4)
+    return file_path
+
 # SMILES Generator
 class SMILESGenerator:
     def __init__(self, model, tokenizer, uniprot_to_sequence):
@@ -102,59 +108,38 @@ class SMILESGenerator:
 def generate_smiles_gradio(sequence_input=None, uniprot_id=None, num_generated=10):
     results = {}
 
-    # Process sequence inputs and include UniProt ID if found
+    # Process protein sequences
     if sequence_input:
         sequences = [seq.strip() for seq in sequence_input.split(",") if seq.strip()]
         for seq in sequences:
             try:
-                # Find the corresponding UniProt ID for the sequence
-                uniprot_id_for_seq = [uid for uid, s in uniprot_to_sequence.items() if s == seq]
-                uniprot_id_for_seq = uniprot_id_for_seq[0] if uniprot_id_for_seq else "N/A"
-                
-                # Generate SMILES for the sequence
+                # Always attempt to generate SMILES from the sequence (regardless of validity)
                 smiles = generator.generate_smiles(seq, num_generated)
-                results[uniprot_id_for_seq] = {
-                    "sequence": seq,
-                    "smiles": smiles
-                }
+                results[seq] = {"sequence": seq, "smiles": smiles}
             except Exception as e:
-                results["N/A"] = {"sequence": seq, "error": f"Error generating SMILES: {str(e)}"}
+                results[seq] = {"sequence": seq, "error": f"Error generating SMILES: {str(e)}"}
 
-    # Process UniProt ID inputs and include sequence if found
+    # Process UniProt IDs
     if uniprot_id:
         uniprot_ids = [uid.strip() for uid in uniprot_id.split(",") if uid.strip()]
         for uid in uniprot_ids:
-            sequence = uniprot_to_sequence.get(uid, "N/A")
+            sequence = uniprot_to_sequence.get(uid, None)  # None if not found
             try:
-                # Generate SMILES for the sequence found
-                if sequence != "N/A":
+                if sequence:
                     smiles = generator.generate_smiles(sequence, num_generated)
-                    results[uid] = {
-                        "sequence": sequence,
-                        "smiles": smiles
-                    }
+                    results[uid] = {"sequence": sequence, "smiles": smiles}
                 else:
-                    results[uid] = {
-                        "sequence": "N/A",
-                        "error": f"UniProt ID {uid} not found in the dataset."
-                    }
+                    # UniProt ID not found
+                    results[uid] = {"sequence": "N/A", "error": f"UniProt ID {uid} not found in dataset."}
             except Exception as e:
                 results[uid] = {"sequence": "N/A", "error": f"Error generating SMILES: {str(e)}"}
 
-    # Check if no results were generated
     if not results:
-        return {"error": "No SMILES generated. Please try again with different inputs."}
+        return {"error": "No valid input provided. Please try again with different sequences or UniProt IDs."}
 
-    # Save results to a file
+    # Save
     file_path = save_smiles_to_file(results)
     return results, file_path
-
-
-def save_smiles_to_file(results):
-    file_path = os.path.join(tempfile.gettempdir(), "generated_smiles.json")
-    with open(file_path, "w") as f:
-        json.dump(results, f, indent=4)
-    return file_path
 
 
 # Main initialization and Gradio setup
@@ -164,34 +149,142 @@ if __name__ == "__main__":
     dataset_name = "alimotahharynia/approved_drug_target"
     dataset_key = "uniprot_sequence"
 
-    # Load model, tokenizer, and dataset
     model, tokenizer = load_model_and_tokenizer(model_name)
     uniprot_to_sequence = load_uniprot_dataset(dataset_name, dataset_key)
 
-    # SMILESGenerator
     generator = SMILESGenerator(model, tokenizer, uniprot_to_sequence)
 
-    # Gradio interface
-    with gr.Blocks() as iface:
-        gr.Markdown("## DrugGen interface")
+    with gr.Blocks(theme=gr.themes.Soft(primary_hue="indigo", secondary_hue="teal")) as iface:
+        custom_css = """
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #fafafa;
+            color: #333;
+            font-size: 16px;
+        }
+
+        #app-title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        #description {
+            font-size: 18px;
+            margin-bottom: 40px;
+            text-align: center;
+            color: #555;
+        }
+
+        .gr-button {
+            padding: 12px 24px;
+            font-weight: bold;
+            background-color: #007bff;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .gr-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .gr-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .gr-output {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .gr-row {
+            margin-bottom: 20px;
+        }
+"""
+
+        iface.css = custom_css
+        gr.Markdown("## GPT-2 Drug Generator", elem_id="app-title")
+        gr.Markdown(
+            "Generate **drug-like SMILES structures** from protein sequences or UniProt IDs. "
+            "Input data, specify parameters, and download the results.",
+            elem_id="description"
+        )
+
         with gr.Row():
             sequence_input = gr.Textbox(
-                label="Input Protein Sequences",
-                placeholder="Enter protein sequences separated by commas..."
+                label="Protein Sequences",
+                placeholder="Enter sequences separated by commas (e.g., MGAASGRRGP, MGETLGDSPI, ...)",
+                lines=3,
             )
             uniprot_id_input = gr.Textbox(
                 label="UniProt IDs",
-                placeholder="Enter UniProt IDs separated by commas..."
+                placeholder="Enter UniProt IDs separated by commas (e.g., P12821, P37231, ...)",
+                lines=1,
             )
-        num_generated_slider = gr.Slider(minimum=1, maximum=100, step=1, value=10, label="Number of Unique SMILES to Generate")
-        output = gr.JSON(label="Generated SMILES")
-        file_output = gr.File(label="Download output as .json")
 
-        generate_button = gr.Button("Generate SMILES")
+        num_generated_slider = gr.Slider(
+            minimum=1,
+            maximum=100,
+            step=1,
+            value=10,
+            label="Number of Unique SMILES to Generate",
+        )
+
+        output = gr.JSON(label="Generated SMILES")
+        file_output = gr.File(label="Download Results as JSON")
+
+        generate_button = gr.Button("Generate SMILES", elem_id="generate-button")
+
         generate_button.click(
             generate_smiles_gradio,
             inputs=[sequence_input, uniprot_id_input, num_generated_slider],
             outputs=[output, file_output]
         )
 
-        iface.launch()
+        gr.Markdown("""
+        ### How to Cite:
+        If you use this tool in your research, please cite the following work:
+        
+        ```bibtex
+        @misc{sheikholeslami2024druggenadvancingdrugdiscovery,
+            title={DrugGen: Advancing Drug Discovery with Large Language Models and Reinforcement Learning Feedback}, 
+            author={Mahsa Sheikholeslami and Navid Mazrouei and Yousof Gheisari and Afshin Fasihi and Matin Irajpour and Ali Motahharynia},
+            year={2024},
+            eprint={2411.14157},
+            archivePrefix={arXiv},
+            primaryClass={q-bio.QM},
+            url={https://arxiv.org/abs/2411.14157}, 
+        }
+        ```
+
+        This will help us maintain the tool and support future development!
+        """)
+
+        iface.launch(allowed_paths=["/tmp"])
