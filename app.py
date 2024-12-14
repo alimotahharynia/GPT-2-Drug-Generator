@@ -107,40 +107,71 @@ class SMILESGenerator:
 # Gradio interface
 def generate_smiles_gradio(sequence_input=None, uniprot_id=None, num_generated=10):
     results = {}
+    uniprot_counter = 0  # Counter for sequences without UniProt IDs
 
-    # Process protein sequences
+    # Process sequence inputs and include UniProt ID if found
     if sequence_input:
         sequences = [seq.strip() for seq in sequence_input.split(",") if seq.strip()]
         for seq in sequences:
             try:
-                # Always attempt to generate SMILES from the sequence (regardless of validity)
+                # Find the corresponding UniProt ID for the sequence
+                uniprot_id_for_seq = [uid for uid, s in uniprot_to_sequence.items() if s == seq]
+                if uniprot_id_for_seq:
+                    uniprot_id_for_seq = uniprot_id_for_seq[0]
+                else:
+                    # Assign a number as the key for sequences without UniProt IDs
+                    uniprot_id_for_seq = str(uniprot_counter)
+                    uniprot_counter += 1
+                
+                # Generate SMILES for the sequence
                 smiles = generator.generate_smiles(seq, num_generated)
-                results[seq] = {"sequence": seq, "smiles": smiles}
-            except Exception as e:
-                results[seq] = {"sequence": seq, "error": f"Error generating SMILES: {str(e)}"}
+                
+                # UniProt ID or the numeric key as the key
+                results[uniprot_id_for_seq] = {
+                    "sequence": seq,
+                    "smiles": smiles
+                }
 
-    # Process UniProt IDs
+            except Exception as e:
+                results[str(uniprot_counter)] = {
+                    "sequence": seq,
+                    "error": f"Error generating SMILES: {str(e)}"
+                }
+                uniprot_counter += 1
+
+    # Process UniProt ID inputs and include sequence if found
     if uniprot_id:
         uniprot_ids = [uid.strip() for uid in uniprot_id.split(",") if uid.strip()]
         for uid in uniprot_ids:
-            sequence = uniprot_to_sequence.get(uid, None)  # None if not found
+            sequence = uniprot_to_sequence.get(uid, "N/A")
             try:
-                if sequence:
+                # Generate SMILES for the sequence found
+                if sequence != "N/A":
                     smiles = generator.generate_smiles(sequence, num_generated)
-                    results[uid] = {"sequence": sequence, "smiles": smiles}
+                    results[uid] = {
+                        "sequence": sequence,
+                        "smiles": smiles
+                    }
                 else:
-                    # UniProt ID not found
-                    results[uid] = {"sequence": "N/A", "error": f"UniProt ID {uid} not found in dataset."}
+                    results[uid] = {
+                        "sequence": "N/A",
+                        "error": f"UniProt ID {uid} not found in the dataset."
+                    }
             except Exception as e:
-                results[uid] = {"sequence": "N/A", "error": f"Error generating SMILES: {str(e)}"}
+                results[uid] = {
+                    "sequence": "N/A",
+                    "error": f"Error generating SMILES: {str(e)}"
+                }
 
+    # Check if no results were generated
     if not results:
-        return {"error": "No valid input provided. Please try again with different sequences or UniProt IDs."}
+        return {"error": "No SMILES generated. Please try again with different inputs."}
 
-    # Save
+    # Save results to a file
     file_path = save_smiles_to_file(results)
-    return results, file_path
 
+    # Return both results (JSON) and the file path
+    return results, file_path
 
 # Main initialization and Gradio setup
 if __name__ == "__main__":
@@ -227,8 +258,16 @@ if __name__ == "__main__":
         .gr-row {
             margin-bottom: 20px;
         }
-"""
 
+       .file-output {
+        height: 60px;
+        overflow-y: auto;
+        color: #ffffff !important;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #555555;
+    }
+"""
         iface.css = custom_css
         gr.Markdown("## GPT-2 Drug Generator", elem_id="app-title")
         gr.Markdown(
@@ -246,7 +285,7 @@ if __name__ == "__main__":
             uniprot_id_input = gr.Textbox(
                 label="UniProt IDs",
                 placeholder="Enter UniProt IDs separated by commas (e.g., P12821, P37231, ...)",
-                lines=1,
+                lines=3,
             )
 
         num_generated_slider = gr.Slider(
@@ -258,7 +297,10 @@ if __name__ == "__main__":
         )
 
         output = gr.JSON(label="Generated SMILES")
-        file_output = gr.File(label="Download Results as JSON")
+        file_output = gr.File(
+        label="Download Results as JSON",
+        elem_classes=["file-output"]
+)
 
         generate_button = gr.Button("Generate SMILES", elem_id="generate-button")
 
