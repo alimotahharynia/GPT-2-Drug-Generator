@@ -260,7 +260,7 @@ if __name__ == "__main__":
         }
 
        .file-output {
-        height: 60px;
+        height: 80px;
         overflow-y: auto;
         color: #ffffff !important;
         padding: 10px;
