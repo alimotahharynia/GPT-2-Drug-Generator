@@ -4,6 +4,7 @@ import torch
 import logging
 import tempfile
 import gradio as gr
+from gradio.themes import Soft
 from datasets import load_dataset
 from transformers import AutoTokenizer, GPT2LMHeadModel
 
@@ -185,93 +186,30 @@ if __name__ == "__main__":
 
     generator = SMILESGenerator(model, tokenizer, uniprot_to_sequence)
 
-    with gr.Blocks(theme=gr.themes.Soft(primary_hue="indigo", secondary_hue="teal")) as iface:
-        custom_css = """
-        html, body {
-            background-color: #ffffff !important;  /* White background */
-            color: #333333 !important;  /* Dark text color for better contrast */
-            font-family: 'Roboto', sans-serif !important;
-        }
-        
+    # Apply Gradio theme
+    theme = Soft(primary_hue="indigo", secondary_hue="teal")
+
+    css = """
         #app-title {
+            font-size: 24px;
             text-align: center;
-            font-size: 36px;
-            font-weight: 700;
-            color: #333333 !important;  /* Dark title for white background */
             margin-bottom: 20px;
         }
-        
         #description {
             font-size: 18px;
-            margin-bottom: 40px;
             text-align: center;
-            color: #555555 !important;  /* Slightly darker text for description */
-        }
-        
-        .gr-button {
-            padding: 12px 24px;
-            font-weight: bold;
-            background-color: #0066cc !important;  /* Muted blue button */
-            color: white !important;
-            border-radius: 8px;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-        }
-        
-        .gr-button:hover {
-            background-color: #005cbf !important;  /* Darker blue on hover */
-            transform: translateY(-2px);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .gr-input:focus {
-            border-color: #0066cc !important;
-            box-shadow: 0 0 8px rgba(0, 102, 204, 0.3) !important;
-        }
-        
-        .gr-output {
-            height: 120px;
-            overflow-y: auto;
-            color: #333333 !important;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #28a745;  /* Green border for file section */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .error-message {
-            background-color: #f8d7da !important;
-            border-color: #f5c6cb !important;
-            color: #721c24 !important;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        
-        .success-message {
-            background-color: #d4edda !important;
-            border-color: #c3e6cb !important;
-            color: #155724 !important;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        
-        .gr-row {
             margin-bottom: 20px;
         }
-        
-        .file-output {
+        #file-output {
             height: 90px;
-            overflow-y: auto;
-            color: #333333 !important;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #28a745;  /* Green border for file section */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        #generate-button {
+            height: 40px;
+            color: #333333 !important;
+        }      
+    """
 
-"""
-        iface.css = custom_css
+    with gr.Blocks(theme=theme, css=css) as iface:
         gr.Markdown("## GPT-2 Drug Generator", elem_id="app-title")
         gr.Markdown(
             "Generate **drug-like SMILES structures** from protein sequences or UniProt IDs. "
@@ -302,11 +240,10 @@ if __name__ == "__main__":
         output = gr.JSON(label="Generated SMILES")
         file_output = gr.File(
         label="Download Results as JSON",
-        elem_classes=["file-output"]
+        elem_id=["file-output"]
 )
 
         generate_button = gr.Button("Generate SMILES", elem_id="generate-button")
-
         generate_button.click(
             generate_smiles_gradio,
             inputs=[sequence_input, uniprot_id_input, num_generated_slider],
