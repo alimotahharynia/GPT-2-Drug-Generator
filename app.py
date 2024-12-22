@@ -95,14 +95,14 @@ class SMILESGenerator:
                     if generated_smiles not in generated_smiles_set:
                         generated_smiles_set.add(generated_smiles)
                 except (IndexError, AttributeError) as e:
-                    logging.warning(f"Failed to parse SMILES due to error: {str(e)}. Skipping.")
+                    logging.warning(f"Failed to parse small molecule due to error: {str(e)}. Skipping.")
             
             if progress_callback:
                 progress_callback((retries + 1) / 30)
 
             retries += 1
 
-        logging.info(f"SMILES generation completed. Generated {len(generated_smiles_set)} SMILES.")
+        logging.info(f"Small molecules generation completed. Generated {len(generated_smiles_set)} Small molecules.")
         return list(generated_smiles_set)
 
 # Gradio interface
@@ -136,7 +136,7 @@ def generate_smiles_gradio(sequence_input=None, uniprot_id=None, num_generated=1
             except Exception as e:
                 results[str(uniprot_counter)] = {
                     "sequence": seq,
-                    "error": f"Error generating SMILES: {str(e)}"
+                    "error": f"Error generating small molecules: {str(e)}"
                 }
                 uniprot_counter += 1
 
@@ -161,12 +161,12 @@ def generate_smiles_gradio(sequence_input=None, uniprot_id=None, num_generated=1
             except Exception as e:
                 results[uid] = {
                     "sequence": "N/A",
-                    "error": f"Error generating SMILES: {str(e)}"
+                    "error": f"Error generating small molecules: {str(e)}"
                 }
 
     # Check if no results were generated
     if not results:
-        return {"error": "No SMILES generated. Please try again with different inputs."}
+        return {"error": "No small molecules generated. Please try again with different inputs."}
 
     # Save results to a file
     file_path = save_smiles_to_file(results)
@@ -210,9 +210,9 @@ if __name__ == "__main__":
     """
 
     with gr.Blocks(theme=theme, css=css) as iface:
-        gr.Markdown("## GPT-2 Drug Generator", elem_id="app-title")
+        gr.Markdown("## DrugGen", elem_id="app-title")
         gr.Markdown(
-            "Generate **drug-like SMILES structures** from protein sequences or UniProt IDs. "
+            "Generate **drug-like small molecules structures** from protein sequences or UniProt IDs. "
             "Input data, specify parameters, and download the results.",
             elem_id="description"
         )
@@ -220,7 +220,7 @@ if __name__ == "__main__":
         with gr.Row():
             sequence_input = gr.Textbox(
                 label="Protein Sequences",
-                placeholder="Enter sequences separated by commas (e.g., MGAASGRRGP, MGETLGDSPI, ...)",
+                placeholder="Enter sequences separated by commas (e.g., MGAASGRRGP..., MGETLGDSPI..., ...)",
                 lines=3,
             )
             uniprot_id_input = gr.Textbox(
@@ -234,16 +234,16 @@ if __name__ == "__main__":
             maximum=100,
             step=1,
             value=10,
-            label="Number of Unique SMILES to Generate",
+            label="Number of Unique Small Molecules to Generate",
         )
 
-        output = gr.JSON(label="Generated SMILES")
+        output = gr.JSON(label="Generated Small Molecules")
         file_output = gr.File(
         label="Download Results as JSON",
         elem_id=["file-output"]
 )
 
-        generate_button = gr.Button("Generate SMILES", elem_id="generate-button")
+        generate_button = gr.Button("Generate Small Molecule", elem_id="generate-button")
         generate_button.click(
             generate_smiles_gradio,
             inputs=[sequence_input, uniprot_id_input, num_generated_slider],
